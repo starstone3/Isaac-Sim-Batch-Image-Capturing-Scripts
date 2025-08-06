@@ -11,7 +11,7 @@ This project provides a Python script for batch capturing images from multiple c
 
 ## Input Data Format
 
-The script requires an input JSON file (`--config_file`) that defines the scenes and camera viewpoints. The structure should follow the example of `sample.json`,which is also uploaded as part of this repository. This file contains a list of scenes, each with multiple camera viewpoints defined by their position and orientation.
+The script requires an input JSON file (`--config_file`) that defines the scenes and camera viewpoints. The structure should follow the example of `sample.json`,which is also uploaded as part of this repository. This file contains a sample scene, with multiple camera viewpoints defined by their position and orientation.
 
 ### JSON Structure
 
@@ -56,6 +56,8 @@ The script requires an input JSON file (`--config_file`) that defines the scenes
 ## Usage
 
 Execute the script using the Python interpreter provided with Isaac Sim from your terminal.
+
+Below is an example command to run the script:
 
 ```bash
 isaacsim/python.sh /path/to/your/repo/Camera_batch.py \
