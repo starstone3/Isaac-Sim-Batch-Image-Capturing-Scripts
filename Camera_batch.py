@@ -10,6 +10,7 @@ import datetime
 from omni.isaac.core.utils.stage import open_stage
 from omni.isaac.core import World
 import omni.isaac.core.utils.numpy.rotations as rot_utils
+import omni.isaac.core.utils.prims as prims_utils
 from omni.isaac.sensor import Camera
 import numpy as np
 import omni.usd
@@ -60,6 +61,12 @@ class CameraBatchProcessor:
         camera.add_motion_vectors_to_frame()
         camera.set_horizontal_aperture(7)
         camera.set_vertical_aperture(5)
+        stage = omni.usd.get_context().get_stage()
+        light_path = f"{prim_path}/light"
+        light = UsdLux.DomeLight.Define(stage, light_path)
+        light.CreateIntensityAttr(30000.0)
+        
+        light.CreateColorAttr(Gf.Vec3f(1.0, 1.0, 1.0))
         return camera
 
     def _setup_new_world(self, scene_path):
@@ -70,13 +77,6 @@ class CameraBatchProcessor:
         if not open_stage(usd_path=str(scene_path)):
             print(f"错误：无法打开场景文件 {scene_path}")
             return None, None
-
-        stage = omni.usd.get_context().get_stage()
-        
-        if not stage.GetPrimAtPath("/World/EnvLight"):
-            dome = UsdLux.DomeLight.Define(stage, "/World/EnvLight")
-            dome.CreateIntensityAttr(30000.0)
-            dome.CreateColorAttr(Gf.Vec3f(1.0, 1.0, 1.0))
         
         world = World()
         world.reset()
@@ -84,7 +84,7 @@ class CameraBatchProcessor:
         for _ in range(10): 
             world.step(render=True)
             
-        return world, stage
+        return world
 
     def process_scene(self, scene_info):
         """
@@ -102,7 +102,7 @@ class CameraBatchProcessor:
             return None
     
         # 1. 只加载一次场景
-        world, stage = self._setup_new_world(scene_path)
+        world= self._setup_new_world(scene_path)
         if world is None:
             print(f"错误：无法加载场景 {scene_name}")
             return None
@@ -191,6 +191,11 @@ class CameraBatchProcessor:
         updated_scene_data = self.aggregate_and_save_results(scene_info, all_results)
     
         print(f"场景 {scene_name} 处理完成，共拍摄 {len(all_results)} 张照片。")
+        prim_paths_to_delete = [camera.prim_path for camera in cameras]
+        for path in prim_paths_to_delete:
+            prims_utils.delete_prim(path)
+        cameras.clear()
+        World.clear_instance()
         return updated_scene_data
 
     def aggregate_and_save_results(self, scene_info, all_results):
