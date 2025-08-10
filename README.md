@@ -1,19 +1,53 @@
 # Isaac Sim Batch Image-Capturing Scripts
 
-This project provides a Python script for batch capturing images from multiple camera poses within the NVIDIA Isaac Sim environment. It is designed to automate the process of data generation for computer vision tasks by systematically loading 3D scenes, positioning cameras according to a configuration file, and capturing images.
+This repository provides two Python scripts for batch capturing images from multiple camera poses within the NVIDIA Isaac Sim environment. Both scripts automate the process of data generation for computer vision tasks by systematically loading 3D scenes, positioning cameras according to a configuration file, and capturing images.
 
+---
+
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Script Overview](#script-overview)
+  - [1. Camera_batch.py (JSON-based)](#1-camerabatchpy-json-based)
+  - [2. Camera_yaml.py (YAML-based)](#2-camerayamlpy-yaml-based)
+- [Input Data Format](#input-data-format)
+- [Usage](#usage)
+- [Output Structure](#output-structure)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+
+---
 
 ## Prerequisites
 
-*   NVIDIA Omniverse Isaac Sim (In our project ,the VERSION of issac sim is **4.2.0-rc.18+release.16044.3b2ed111.gl**).
+- **NVIDIA Omniverse Isaac Sim** (Tested with version: `4.2.0-rc.18+release.16044.3b2ed111.gl`)
+- Python environment capable of running Isaac Sim scripts (use Isaac Sim's `python.sh` or `python.bat`)
+- Additional Python packages: `numpy`, `pillow`, `pyyaml` (for YAML version)
 
-*   A Python environment capable of running Isaac Sim scripts. The script is intended to be run with Isaac Sim's Python executable (e.g., `python.sh` or `python.bat`).
+---
+
+## Script Overview
+
+### 1. `Camera_batch.py` (JSON-based)
+
+- Uses a JSON configuration file to define scenes and camera viewpoints.
+- Command-line arguments allow you to specify the config file, USD base path, output path, and other options.
+- Suitable for workflows where all configuration is in a single JSON file.
+
+### 2. `Camera_yaml.py` (YAML-based)
+
+- Uses a YAML configuration file for more flexible and readable configuration.
+- YAML config can reference a JSON camera config, USD base path, output path, and processing options.
+- Command-line arguments can override YAML settings.
+- Recommended for more complex or batch workflows.
+
+---
 
 ## Input Data Format
 
-The script requires an input JSON file (`--config_file`) that defines the scenes and camera viewpoints. The structure should follow the example of `sample.json`,which is also uploaded as part of this repository. This file contains a sample scene, with multiple camera viewpoints defined by their position and orientation.
+### JSON Camera Configuration
 
-### JSON Structure
+Both scripts expect a JSON file describing scenes, trajectories, and camera points. Example (`sample.json`):
 
 ```json
 {
@@ -30,12 +64,6 @@ The script requires an input JSON file (`--config_file`) that defines the scenes
               "position": [16.48, -8.97, 0.12],
               "rotation": [0.707, 0.0, 0.0, 0.707],
               "camera_images": []
-            },
-            {
-              "point": "1",
-              "position": [16.52, -8.26, 0.12],
-              "rotation": [0.737, 0.0, 0.0, 0.675],
-              "camera_images": []
             }
           ]
         }
@@ -45,45 +73,66 @@ The script requires an input JSON file (`--config_file`) that defines the scenes
 }
 ```
 
-*   `scene_name`: Corresponds to the folder name containing the `.usd` file. The script expects the USD file to be at `{base_usd_path}/{scene_name}/{scene_name}.usd`.
+### YAML Batch Configuration (for `Camera_yaml.py`)
 
-*   `position`: An `[x, y, z]` list for the camera's location. Notice that we increase the height of the camera by 1.0 unit to prevent it from being too close to the ground.
+Example:
 
-*   `rotation`: A `[w, x, y, z]` quaternion for the camera's orientation.
+```yaml
+input:
+  camera_config_json: ./sample.json
+  base_usd_path: ./matterport_usd
 
-*   `camera_images`: An empty list that will be populated by the script in the output JSON.
+output:
+  base_path: null
+
+processing:
+  max_concurrent_cameras: 50
+  start_scene_index: 0
+  target_scene_ids: null
+```
+
+---
 
 ## Usage
 
-Execute the script using the Python interpreter provided with Isaac Sim from your terminal.
-
-Below is an example command to run the script:
+### 1. Using `Camera_batch.py` (JSON-based)
 
 ```bash
-isaacsim/python.sh /path/to/your/repo/Camera_batch.py \
+isaacsim/python.sh Camera_batch.py \
     --config_file ./sample.json \
     --base_usd_path /path/to/your/usd_scenes \
     --output_path /path/to/your/output_directory \
     --max_concurrent_cameras 50
 ```
 
-### Command-Line Arguments
+**Key Arguments:**
 
-*   `--config_file`: (Required) Path to the main JSON configuration file.
+- `--config_file`: Path to the main JSON configuration file (required)
+- `--base_usd_path`: Path to the base directory containing the USD scene folders (required)
+- `--output_path`: Output directory (required)
+- `--scene_ids`: (Optional) Space-separated list of scene IDs to process
+- `--max_concurrent_cameras`: (Optional) Max number of cameras per batch (default: 50)
+- `--start_index`: (Optional) Start processing from this scene ID (default: 0)
 
-*   `--base_usd_path`: (Required) Path to the base directory containing the USD scene folders.
+---
 
-*   `--output_path`: (Required) Path to the directory where all outputs will be saved.
+### 2. Using `Camera_yaml.py` (YAML-based)
 
-*   `--scene_ids`: (Optional) A space-separated list of scene IDs to process. If not provided, all scenes in the config file are processed. Example: `--scene_ids 0 2 5`.
+```bash
+isaacsim/python.sh Camera_yaml.py --config your_config.yaml
+```
 
-*   `--max_concurrent_cameras`: (Optional) The maximum number of cameras to use in a single batch. A lower number reduces VRAM usage. Default: `50`.
+**Key Arguments:**
 
-*   `--start_index`: (Optional) A scene ID to start processing from. Scenes with an ID lower than this will be skipped. Default: `0`.
+- `--config`: Path to the YAML configuration file (required)
+- `--scene_ids`: (Optional) Override: list of scene IDs to process
+- `--output_path`: (Optional) Override: output directory
+
+---
 
 ## Output Structure
 
-The script will generate the following structure in the specified `--output_path`:
+Both scripts generate the following output structure:
 
 ```
 /path/to/your/output_directory/
@@ -100,17 +149,23 @@ The script will generate the following structure in the specified `--output_path
 └── config_with_images.json
 ```
 
-*   `config_with_images.json`: A copy of the original input configuration file, but with the `camera_images` fields populated with the paths to the rendered images.
+- `config_with_images.json`: The original config file, updated with image paths in `camera_images`.
+- `scene_info.json`: All trajectory data for a specific scene.
+- `trajectory_info.json`: Point data and image paths for a specific trajectory.
 
-*   `scene_info.json`: Contains all the trajectory data for a specific scene.
+---
 
-*   `trajectory_info.json`: Contains the point data and image paths for a specific trajectory.
+## Troubleshooting
 
+1. `[Error] [carb.graphics-vulkan.plugin] GPU crash is detected`:  
+   Try using fewer GPUs. In our practice, 3 RTX 3090 GPUs can run the script simultaneously without crashing, but 4 GPUs may cause a crash.
 
-## Common Issues
+2. When running the scripts in a `screen` session or in the background, the process may hang or become unresponsive. To avoid this, try redirecting both stdout and stderr to a log file, for example:
+   ```bash
+   isaacsim/python.sh Camera_batch.py ... > output.log 2>&1
+   ```
 
-1. `[Error] [carb.graphics-vulkan.plugin] GPU crash is detected`:Try to use fewer GPUs.In our practice,3 RTX 3090 GPUs can run the script simultaneously without crashing but 4 GPUs may cause a crash.
-
+---
 
 ## License
 
