@@ -330,7 +330,7 @@ def main():
     output_path = args.output_path if args.output_path else output_cfg.get('base_path')
     if not output_path:
         now_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = f"/home5/gzq/data/test_{now_str}"
+        output_path = f"./data/test_{now_str}"
         print(f"未指定输出路径，将使用自动生成的路径: {output_path}")
 
     max_cameras = proc_cfg.get('max_concurrent_cameras', 50)
